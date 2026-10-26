@@ -1,4 +1,3 @@
-
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
@@ -28,11 +27,9 @@ async function DashboardContent() {
   await connection();
 
   const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
 
-  const {
-    data: { claims },
-    error,
-  } = await supabase.auth.getClaims();
+  const claims = data?.claims;
 
   if (error || !claims?.sub) {
     redirect("/login");
@@ -43,10 +40,17 @@ async function DashboardContent() {
       ? claims.email
       : "DiaryVault member";
 
+  const metadata = claims.user_metadata;
+
   const displayName =
-    typeof claims.user_metadata?.full_name === "string"
-      ? claims.user_metadata.full_name
-      : email.split("@")[0];
+    metadata &&
+    typeof metadata === "object" &&
+    "full_name" in metadata &&
+    typeof metadata.full_name === "string"
+      ? metadata.full_name
+      : email.includes("@")
+        ? email.split("@")[0]
+        : email;
 
   return (
     <main className="min-h-screen bg-[#0c0b12] text-white">
